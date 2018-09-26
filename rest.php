@@ -189,7 +189,8 @@ function getMCMinfo($cardname = null, $edition = null, $productID = null)
 }
 
 function fetchExpansions(){
-    $db = new SQLite3($dbFile);
+    global $config;
+    $db = new SQLite3($config['dbFile']);
     $expansions = getExpansions();
     $db->query("DELETE FROM expansions");
     echo("Adding expansions...");

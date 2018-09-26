@@ -10,7 +10,9 @@ if( !array_key_exists(1, $argv) ){
     die('Need an input file name. Run as php parse_and_load.php <file_name>');
 }
 
-$db = new SQLite3($dbFile);
+$db = new SQLite3($config['dbFile']);
+
+fetchExpansions();
 
 $data = file($argv[1]);
 $statement = $db->prepare("SELECT name FROM expansions WHERE code = :1");
@@ -33,15 +35,15 @@ foreach($data as $line) {
         $lowest = 0;
         $avg = 0;
         $count = 0;
-        $cheapestPolish = 0;
+        $cheapestInCountry = 0;
         $myPrice = 0;
 
         foreach($articles as $idx=>$article) {
             if($article['isPlayset']) $article['price'] /= 4;
-            if($article['seller']['address']['country'] == 'PL' && $article['seller']['username'] <> 'mjanowski' && $cheapestPolish == 0) {
-                $cheapestPolish = $article['price'];
+            if($article['seller']['address']['country'] == $config['country'] && $article['seller']['username'] <> $config['mkm_login'] && $cheapestInCountry == 0) {
+                $cheapestInCountry = $article['price'];
             }
-            if($article['seller']['address']['country'] == 'PL' && $article['seller']['username'] == 'mjanowski') {
+            if($article['seller']['address']['country'] == $config['country'] && $article['seller']['username'] == $config['mkm_login']) {
                 $myPrice = $article['price'];
             }
             $count++;
@@ -56,19 +58,20 @@ foreach($data as $line) {
 
         $avg /= $count;
         echo("avg: " . round($avg,2));
-        echo("\ncheapest in Poland: $cheapestPolish (my price: $myPrice)");
+        echo("\ncheapest in Poland: $cheapestInCountry (my price: $myPrice)");
         echo("\nlowest: $lowest");
         echo("\n\n");
 
         file_put_contents("log\\" . $name . ".log", var_export($articles, true));
 
-        $data = $db->prepare("INSERT OR REPLACE INTO stock (id, name, low, avg, cheapest_polish, my_price) values (:id, :name, :low, :avg, :cheapest_polish, :my_price)");
+        $data = $db->prepare("INSERT OR REPLACE INTO stock (id, name, low, avg, cheapest_in_country, my_price, expansion_code) values (:id, :name, :low, :avg, :cheapest_in_country, :my_price, :expansion_code)");
         $data->bindValue(':id', $id);
         $data->bindValue(':name', $name);
         $data->bindValue(':low', $lowest);
         $data->bindValue(':avg', $avg);
-        $data->bindValue(':cheapest_polish', $cheapestPolish);
+        $data->bindValue(':cheapest_in_country', $cheapestInCountry);
         $data->bindValue(':my_price', $myPrice);
+        $data->bindValue(':expansion_code', $exp['name']);
         $data->execute();
         $data->close();
         
